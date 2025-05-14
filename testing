@@ -2,61 +2,54 @@ pipeline {
     agent any
 
     stages {
-        // Stage 1: Build
         stage('Build') {
             steps {
                 echo 'Building the application...'
-                sh 'mvn clean package'  // For Java (Maven)
-                // sh 'npm install'     // For Node.js
+                bat 'mvn clean package'  // For Java (Maven)
+                // bat 'npm install'     // For Node.js
             }
         }
 
-        // Stage 2: Unit & Integration Tests
         stage('Tests') {
             steps {
                 echo 'Running Unit & Integration Tests...'
-                sh 'mvn test'          // For Java (JUnit)
-                // sh 'npm test'       // For Node.js (Jest)
+                bat 'mvn test'           // For Java (JUnit)
+                // bat 'npm test'        // For Node.js (Jest)
             }
         }
 
-        // Stage 3: Code Analysis
         stage('Code Analysis') {
             steps {
                 echo 'Running SonarQube Analysis...'
-                sh 'mvn sonar:sonar -Dsonar.projectKey=my-project'
+                bat 'mvn sonar:sonar -Dsonar.projectKey=my-project'
             }
         }
 
-        // Stage 4: Security Scan
         stage('Security Scan') {
             steps {
                 echo 'Running OWASP Dependency-Check...'
-                sh 'dependency-check --scan . --format HTML'
+                bat 'dependency-check --scan . --format HTML'
             }
         }
 
-        // Stage 5: Deploy to Staging
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying to AWS EC2 Staging...'
-                sh 'scp target/my-app.jar user@staging-server:/deploy/'
+                bat 'scp target\\my-app.jar user@staging-server:/deploy/'  // Use double backslashes or forward slashes carefully
             }
         }
 
-        // Stage 6: Integration Tests on Staging
         stage('Staging Tests') {
             steps {
                 echo 'Running Postman API Tests on Staging...'
-                sh 'newman run tests/api-tests.json'
+                bat 'newman run tests\\api-tests.json'
             }
         }
 
-        // Stage 7: Deploy to Production
         stage('Deploy to Production') {
             steps {
                 echo 'Deploying to AWS EC2 Production...'
-                sh 'scp target/my-app.jar user@prod-server:/deploy/'
+                bat 'scp target\\my-app.jar user@prod-server:/deploy/'
             }
         }
     }
