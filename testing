@@ -4,24 +4,22 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                bat 'mvn clean package'  // For Java (Maven)
-                // bat 'npm install'     // For Node.js
+                echo 'Installing dependencies...'
+                bat 'npm install'
             }
         }
 
         stage('Tests') {
             steps {
                 echo 'Running Unit & Integration Tests...'
-                bat 'mvn test'           // For Java (JUnit)
-                // bat 'npm test'        // For Node.js (Jest)
+                bat 'npm test'
             }
         }
 
         stage('Code Analysis') {
             steps {
                 echo 'Running SonarQube Analysis...'
-                bat 'mvn sonar:sonar -Dsonar.projectKey=my-project'
+                bat 'sonar-scanner -Dsonar.projectKey=my-node-project'
             }
         }
 
@@ -35,7 +33,7 @@ pipeline {
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying to AWS EC2 Staging...'
-                bat 'scp target\\my-app.jar user@staging-server:/deploy/'  // Use double backslashes or forward slashes carefully
+                bat 'scp dist\\app.js user@staging-server:/deploy/'
             }
         }
 
@@ -49,7 +47,7 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 echo 'Deploying to AWS EC2 Production...'
-                bat 'scp target\\my-app.jar user@prod-server:/deploy/'
+                bat 'scp dist\\app.js user@prod-server:/deploy/'
             }
         }
     }
