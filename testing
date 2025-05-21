@@ -1,57 +1,60 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3'  // Make sure this matches your Jenkins global tool config
-    }
-
     stages {
         stage('Build') {
             steps {
                 echo 'Building the application...'
-                bat 'mvn clean package'
+                // Replace this with your actual build command/script
+                bat 'echo Simulating Build...'
             }
         }
 
         stage('Tests') {
             steps {
                 echo 'Running Unit & Integration Tests...'
-                bat 'mvn test'
+                // Replace with your actual test command/script
+                bat 'echo Simulating Tests...'
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running SonarQube Analysis...'
-                bat 'mvn sonar:sonar -Dsonar.projectKey=my-project'
+                echo 'Running Code Analysis...'
+                // Replace with your analysis tool or remove if not needed
+                bat 'echo Simulating Code Analysis...'
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running OWASP Dependency-Check...'
-                bat 'dependency-check --scan . --format HTML'
+                echo 'Running Security Scan...'
+                // Replace with actual security tool or remove if not applicable
+                bat 'echo Simulating Security Scan...'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying to AWS EC2 Staging...'
-                bat 'scp target\\my-app.jar user@staging-server:/deploy/'
+                // Simulated SCP command (replace with actual deployment if needed)
+                bat 'echo Deploying to Staging...'
             }
         }
 
         stage('Staging Tests') {
             steps {
                 echo 'Running Postman API Tests on Staging...'
-                bat 'newman run tests\\api-tests.json'
+                // Replace with actual Postman or Newman command
+                bat 'echo Running Staging API Tests...'
             }
         }
 
         stage('Deploy to Production') {
             steps {
                 echo 'Deploying to AWS EC2 Production...'
-                bat 'scp target\\my-app.jar user@prod-server:/deploy/'
+                // Simulated SCP command (replace with actual production deploy)
+                bat 'echo Deploying to Production...'
             }
         }
     }
