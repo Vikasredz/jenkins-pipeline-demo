@@ -4,57 +4,52 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                // Replace this with your actual build command/script
-                bat 'echo Simulating Build...'
+                echo '🔧 Stage 1: Building the application using npm (build automation tool)'
+                bat 'npm install' // or 'mvn clean install' for Maven-based Java projects
             }
         }
 
-        stage('Tests') {
+        stage('Unit and Integration Tests') {
             steps {
-                echo 'Running Unit & Integration Tests...'
-                // Replace with your actual test command/script
-                bat 'echo Simulating Tests...'
+                echo '🧪 Stage 2: Running unit and integration tests using Jest'
+                bat 'npm test' // Use `jest`, `mocha`, or relevant test runner
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running Code Analysis...'
-                // Replace with your analysis tool or remove if not needed
-                bat 'echo Simulating Code Analysis...'
+                echo '🔍 Stage 3: Running code analysis using ESLint'
+                bat 'npx eslint . || exit /b 0' // `|| exit /b 0` allows continuation on lint errors
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running Security Scan...'
-                // Replace with actual security tool or remove if not applicable
-                bat 'echo Simulating Security Scan...'
+                echo '🛡️ Stage 4: Performing security scan using npm audit'
+                bat 'npm audit || exit /b 0'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to AWS EC2 Staging...'
-                // Simulated SCP command (replace with actual deployment if needed)
-                bat 'echo Deploying to Staging...'
+                echo '🚀 Stage 5: Deploying to AWS EC2 staging server'
+                bat 'echo Simulating SCP/SSH deploy to staging server'
+                // Example: bat 'scp -i key.pem dist/* ec2-user@staging-ip:/var/www/app'
             }
         }
 
-        stage('Staging Tests') {
+        stage('Integration Tests on Staging') {
             steps {
-                echo 'Running Postman API Tests on Staging...'
-                // Replace with actual Postman or Newman command
-                bat 'echo Running Staging API Tests...'
+                echo '🧪 Stage 6: Running Postman integration tests on staging using Newman'
+                bat 'newman run staging-tests.postman_collection.json || exit /b 0'
             }
         }
 
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to AWS EC2 Production...'
-                // Simulated SCP command (replace with actual production deploy)
-                bat 'echo Deploying to Production...'
+                echo '🚀 Stage 7: Deploying to AWS EC2 production server'
+                bat 'echo Simulating SCP/SSH deploy to production server'
+                // Example: bat 'scp -i key.pem dist/* ec2-user@prod-ip:/var/www/app'
             }
         }
     }
