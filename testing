@@ -1,43 +1,61 @@
 pipeline {
     agent any
-    environment {
-        remoteUser = 'Vikasreddy'               // your SSH user
-        remoteHost = 'your.server.ip'           // your remote server IP or hostname
-        remotePath = '/path/to/deploy/app'      // deployment directory on remote server
+
+    triggers {
+        // Poll SCM every 15 minutes (adjust as needed)
+        pollSCM('H/15 * * * *')
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Build') {
             steps {
-                echo 'Building project...'
-                bat 'npm install'
-                bat 'npm run build'
+                echo 'Building the project using Maven...'
+                bat 'mvn clean package'
             }
         }
-        stage('Test') {
+        
+        stage('Unit and Integration Tests') {
             steps {
-                echo 'Running tests...'
-                bat 'npm test'
+                echo 'Running unit and integration tests with JUnit/TestNG...'
+                bat 'mvn test'
             }
         }
-        stage('Security') {
+        
+        stage('Code Analysis') {
             steps {
-                echo 'Running npm audit...'
-                bat 'npm audit || exit 0'
+                echo 'Analyzing code with SonarQube...'
+                // Assuming SonarQube scanner is configured
+                bat 'mvn sonar:sonar'
             }
         }
-        stage('Deploy') {
+        
+        stage('Security Scan') {
             steps {
-                echo 'Deploying to remote server...'
-                bat """
-                    scp -r * %remoteUser%@%remoteHost%:%remotePath%
-                    ssh %remoteUser%@%remoteHost% "cd %remotePath% && npm install && pm2 restart app || pm2 start app.js --name app"
-                """
+                echo 'Performing security scan using OWASP Dependency-Check...'
+                // Example command to run OWASP Dependency-Check (adjust path accordingly)
+                bat 'dependency-check.bat --project my-app --scan .\\target'
+            }
+        }
+        
+        stage('Deploy to Staging') {
+            steps {
+                echo 'Deploying application to Staging AWS EC2...'
+                // Placeholder for deployment script/command (PowerShell or batch script)
+                bat '.\\deploy-to-ec2.bat staging'
+            }
+        }
+        
+        stage('Integration Tests on Staging') {
+            steps {
+                echo 'Running integration tests on staging environment using Postman/Newman...'
+                bat 'newman run staging-tests.postman_collection.json'
+            }
+        }
+        
+        stage('Deploy to Production') {
+            steps {
+                echo 'Deploying application to Production AWS EC2...'
+                bat '.\\deploy-to-ec2.bat production'
             }
         }
     }
