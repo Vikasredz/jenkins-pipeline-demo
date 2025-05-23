@@ -1,84 +1,46 @@
 pipeline {
     agent any
 
-    environment {
-        AWS_REGION = 'ap-southeast-2'
-        STAGING_SERVER = 'ec2-user@staging.example.com'
-        PRODUCTION_SERVER = 'ec2-user@production.example.com'
-        SSH_KEY_PATH = 'C:\\path\\to\\your\\private-key.ppk'  // Update this path
-        PUTTY_PATH = 'C:\\Program Files\\PuTTY'               // Update this path if needed
-    }
-
-    triggers {
-        pollSCM('H/5 * * * *')
-    }
-
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
         stage('Build') {
             steps {
-                echo 'Skipping npm install and build since no package.json present.'
-                // Add any other build steps here if needed
+                echo 'Building project...'
+                bat 'npm install'
+                bat 'npm run build'
             }
         }
-
-        stage('Unit and Integration Tests') {
+        stage('Test') {
             steps {
-                echo 'Skipping npm tests as no package.json or test scripts.'
-                // If you have any other test commands, add here
+                echo 'Running tests...'
+                bat 'npm test'
             }
         }
-
-        stage('Code Analysis') {
+        stage('Security') {
             steps {
-                echo 'Skipping ESLint since no npm environment.'
-                // Or run other static analysis if relevant
+                echo 'Running npm audit...'
+                bat 'npm audit || exit 0'
             }
         }
-
-        stage('Security Scan') {
+        stage('Deploy') {
             steps {
-                echo 'Skipping security scan as no npm environment.'
-                // Or add other security tools here
-            }
-        }
-
-        stage('Deploy to Staging') {
-            steps {
-                echo 'Deploying to staging...'
+                echo 'Deploying to remote server...'
+                // Replace these variables with your server details
+                script {
+                    def remoteUser = 'your-ssh-user'
+                    def remoteHost = 'your.server.ip'
+                    def remotePath = '/path/to/deploy/app'
+                }
+                // Copy all files from workspace to remote server (you need scp installed)
                 bat """
-                powershell Compress-Archive -Path * -DestinationPath app.zip
-                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.STAGING_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; pm2 restart all || pm2 start index.js\\""
+                scp -r * ${remoteUser}@${remoteHost}:${remotePath}
+                ssh ${remoteUser}@${remoteHost} "cd ${remotePath} && npm install && pm2 restart app || pm2 start app.js --name app"
                 """
             }
-        }
-
-        stage('Integration Tests on Staging') {
-            steps {
-                echo 'Running integration tests on staging...'
-                bat 'newman run staging-tests.postman_collection.json'
-            }
-        }
-
-        stage('Deploy to Production') {
-            steps {
-                input message: 'Approve deployment to production?', ok: 'Deploy'
-                echo 'Deploying to production...'
-                bat """
-                powershell Compress-Archive -Path * -DestinationPath app.zip
-                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.PRODUCTION_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; pm2 restart all || pm2 start index.js\\""
-                """
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline completed successfully.'
-        }
-        failure {
-            echo 'Pipeline failed.'
         }
     }
 }
