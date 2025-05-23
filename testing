@@ -1,55 +1,65 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_PROJECT_KEY = 'your-sonar-project-key'
+    }
+
     stages {
         stage('Build') {
             steps {
-                echo '🔧 Stage 1: Building the application using npm (build automation tool)'
-                bat 'npm install' // or 'mvn clean install' for Maven-based Java projects
+                echo 'Building project...'
+                sh 'npm install'
+                sh 'npm run build'
             }
         }
 
-        stage('Unit and Integration Tests') {
+        stage('Test') {
             steps {
-                echo '🧪 Stage 2: Running unit and integration tests using Jest'
-                bat 'npm test' // Use `jest`, `mocha`, or relevant test runner
+                echo 'Running tests...'
+                sh 'npm test'
             }
         }
 
-        stage('Code Analysis') {
+        stage('Code Quality') {
             steps {
-                echo '🔍 Stage 3: Running code analysis using ESLint'
-                bat 'npx eslint . || exit /b 0' // `|| exit /b 0` allows continuation on lint errors
+                echo 'Running SonarCloud analysis...'
+                withSonarQubeEnv('SonarCloud') {
+                    sh 'sonar-scanner \
+                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=$SONAR_TOKEN'
+                }
             }
         }
 
-        stage('Security Scan') {
+        stage('Security') {
             steps {
-                echo '🛡️ Stage 4: Performing security scan using npm audit'
-                bat 'npm audit || exit /b 0'
+                echo 'Running npm audit...'
+                sh 'npm audit || true'
             }
         }
 
-        stage('Deploy to Staging') {
+        stage('Deploy') {
             steps {
-                echo '🚀 Stage 5: Deploying to AWS EC2 staging server'
-                bat 'echo Simulating SCP/SSH deploy to staging server'
-                // Example: bat 'scp -i key.pem dist/* ec2-user@staging-ip:/var/www/app'
+                echo 'Deploying to staging environment...'
+                sh 'docker-compose -f docker-compose.staging.yml up -d'
             }
         }
 
-        stage('Integration Tests on Staging') {
+        stage('Release') {
             steps {
-                echo '🧪 Stage 6: Running Postman integration tests on staging using Newman'
-                bat 'newman run staging-tests.postman_collection.json || exit /b 0'
+                echo 'Promoting to production...'
+                sh 'docker-compose -f docker-compose.prod.yml up -d'
             }
         }
 
-        stage('Deploy to Production') {
+        stage('Monitoring') {
             steps {
-                echo '🚀 Stage 7: Deploying to AWS EC2 production server'
-                bat 'echo Simulating SCP/SSH deploy to production server'
-                // Example: bat 'scp -i key.pem dist/* ec2-user@prod-ip:/var/www/app'
+                echo 'Simulating monitoring...'
+                sh 'curl -f http://localhost:3000/health || true'
             }
         }
     }
