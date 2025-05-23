@@ -7,59 +7,58 @@ pipeline {
         PRODUCTION_SERVER = 'ec2-user@production.example.com'
         SSH_KEY_PATH = 'C:\\path\\to\\your\\private-key.ppk'   // Update accordingly
         PUTTY_PATH = 'C:\\Program Files\\PuTTY'                // Update accordingly
-        SONARQUBE_SERVER = 'http://sonarqube.example.com'      // Your SonarQube server URL
-        SONARQUBE_AUTH_TOKEN = credentials('sonar-auth-token') // Jenkins credential ID for SonarQube token
+        // SONARQUBE_SERVER and SONARQUBE_AUTH_TOKEN removed
     }
 
     triggers {
-        pollSCM('H/5 * * * *')  // Poll Git repo every 5 minutes
+        pollSCM('H/5 * * * *')
     }
 
     stages {
         stage('Build') {
             steps {
-                echo 'Building the code with Maven...'
-                bat 'mvn clean package'  // Build Java project with Maven
+                echo 'Installing dependencies and building the project...'
+                // Replace below with actual build commands or keep empty if none
+                bat 'npm install' 
+                // bat 'npm run build' if applicable
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests with Maven...'
-                bat 'mvn test' // Run tests
+                echo 'Running unit and integration tests...'
+                bat 'npm test'
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                withSonarQubeEnv('SonarQube') {  // 'SonarQube' is Jenkins SonarQube installation name
-                    bat "mvn sonar:sonar -Dsonar.host.url=${env.SONARQUBE_SERVER} -Dsonar.login=${env.SONARQUBE_AUTH_TOKEN}"
-                }
+                echo 'Running ESLint for static code analysis...'
+                bat 'npx eslint .'
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running Snyk security scan...'
-                bat 'snyk test || exit 0'  // Run Snyk scan, don't fail pipeline on issues
+                echo 'Running security scan (npm audit)...'
+                bat 'npm audit || exit 0'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying application to staging server...'
+                echo 'Deploying to staging...'
                 bat """
                 powershell Compress-Archive -Path * -DestinationPath app.zip
                 "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.STAGING_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; mvn clean install; pm2 restart all || pm2 start index.js\\""
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; npm install; pm2 restart all || pm2 start index.js\\""
                 """
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging environment with Newman...'
+                echo 'Running integration tests on staging...'
                 bat 'newman run staging-tests.postman_collection.json'
             }
         }
@@ -67,11 +66,11 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 input message: 'Approve deployment to production?', ok: 'Deploy'
-                echo 'Deploying application to production server...'
+                echo 'Deploying to production...'
                 bat """
                 powershell Compress-Archive -Path * -DestinationPath app.zip
                 "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.PRODUCTION_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; mvn clean install; pm2 restart all || pm2 start index.js\\""
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; npm install; pm2 restart all || pm2 start index.js\\""
                 """
             }
         }
