@@ -1,45 +1,84 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_REGION = 'ap-southeast-2'
+        STAGING_SERVER = 'ec2-user@staging.example.com'
+        PRODUCTION_SERVER = 'ec2-user@production.example.com'
+        SSH_KEY_PATH = 'C:\\path\\to\\your\\private-key.ppk'  // Update this path
+        PUTTY_PATH = 'C:\\Program Files\\PuTTY'               // Update this path if needed
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
     stages {
         stage('Build') {
             steps {
-                echo 'Build skipped - no package.json'
-                // Or put your build commands here if needed
+                echo 'Skipping npm install and build since no package.json present.'
+                // Add any other build steps here if needed
             }
         }
 
-        stage('Test') {
+        stage('Unit and Integration Tests') {
             steps {
-                echo 'Tests skipped - no npm test scripts'
+                echo 'Skipping npm tests as no package.json or test scripts.'
+                // If you have any other test commands, add here
             }
         }
 
-        stage('Security') {
+        stage('Code Analysis') {
             steps {
-                echo 'Security scan skipped - no npm environment'
+                echo 'Skipping ESLint since no npm environment.'
+                // Or run other static analysis if relevant
             }
         }
 
-        stage('Deploy') {
+        stage('Security Scan') {
             steps {
-                echo 'Deploying to staging environment...'
-                bat 'docker-compose -f docker-compose.staging.yml up -d'
+                echo 'Skipping security scan as no npm environment.'
+                // Or add other security tools here
             }
         }
 
-        stage('Release') {
+        stage('Deploy to Staging') {
             steps {
-                echo 'Promoting to production...'
-                bat 'docker-compose -f docker-compose.prod.yml up -d'
+                echo 'Deploying to staging...'
+                bat """
+                powershell Compress-Archive -Path * -DestinationPath app.zip
+                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.STAGING_SERVER}:
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; pm2 restart all || pm2 start index.js\\""
+                """
             }
         }
 
-        stage('Monitoring') {
+        stage('Integration Tests on Staging') {
             steps {
-                echo 'Simulating monitoring...'
-                bat 'curl -f http://localhost:3000/health || exit 0'
+                echo 'Running integration tests on staging...'
+                bat 'newman run staging-tests.postman_collection.json'
             }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                input message: 'Approve deployment to production?', ok: 'Deploy'
+                echo 'Deploying to production...'
+                bat """
+                powershell Compress-Archive -Path * -DestinationPath app.zip
+                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.PRODUCTION_SERVER}:
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; pm2 restart all || pm2 start index.js\\""
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
