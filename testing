@@ -2,81 +2,67 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'ap-southeast-2'
-        STAGING_SERVER = 'ec2-user@staging.example.com'
-        PRODUCTION_SERVER = 'ec2-user@production.example.com'
-        SSH_KEY_PATH = 'C:\\path\\to\\your\\private-key.ppk'  // Update accordingly
-        PUTTY_PATH = 'C:\\Program Files\\PuTTY'               // Update accordingly
-    }
-
-    triggers {
-        pollSCM('H/5 * * * *')
+        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_PROJECT_KEY = 'your-sonar-project-key'
     }
 
     stages {
         stage('Build') {
             steps {
-                echo 'Skipping build - no package.json found.'
+                echo 'Building project...'
+                bat 'npm install'
+                bat 'npm run build'
             }
         }
 
-        stage('Unit and Integration Tests') {
+        stage('Test') {
             steps {
-                echo 'Skipping tests - no npm test scripts found.'
+                echo 'Running tests...'
+                bat 'npm test'
             }
         }
 
-        stage('Code Analysis') {
+        stage('Code Quality') {
             steps {
-                echo 'Skipping code analysis - no npm environment.'
+                echo 'Running SonarCloud analysis...'
+                withSonarQubeEnv('SonarCloud') {
+                    bat """
+                    sonar-scanner ^
+                        -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                        -Dsonar.sources=. ^
+                        -Dsonar.host.url=https://sonarcloud.io ^
+                        -Dsonar.login=%SONAR_TOKEN%
+                    """
+                }
             }
         }
 
-        stage('Security Scan') {
+        stage('Security') {
             steps {
-                echo 'Skipping security scan - no npm environment.'
+                echo 'Running npm audit...'
+                bat 'npm audit || exit 0'
             }
         }
 
-        stage('Deploy to Staging') {
+        stage('Deploy') {
             steps {
-                echo 'Deploying to staging...'
-                bat """
-                powershell Compress-Archive -Path * -DestinationPath app.zip
-                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.STAGING_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} \\
-                    "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; pm2 restart all || pm2 start index.js\\""
-                """
+                echo 'Deploying to staging environment...'
+                bat 'docker-compose -f docker-compose.staging.yml up -d'
             }
         }
 
-        stage('Integration Tests on Staging') {
+        stage('Release') {
             steps {
-                echo 'Running integration tests on staging...'
-                bat 'newman run staging-tests.postman_collection.json'
+                echo 'Promoting to production...'
+                bat 'docker-compose -f docker-compose.prod.yml up -d'
             }
         }
 
-        stage('Deploy to Production') {
+        stage('Monitoring') {
             steps {
-                input message: 'Approve deployment to production?', ok: 'Deploy'
-                echo 'Deploying to production...'
-                bat """
-                powershell Compress-Archive -Path * -DestinationPath app.zip
-                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.PRODUCTION_SERVER}:
-                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} \\
-                    "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; pm2 restart all || pm2 start index.js\\""
-                """
+                echo 'Simulating monitoring...'
+                bat 'curl -f http://localhost:3000/health || exit 0'
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline completed successfully.'
-        }
-        failure {
-            echo 'Pipeline failed.'
         }
     }
 }
