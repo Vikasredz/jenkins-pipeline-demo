@@ -44,8 +44,8 @@ pipeline {
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging using Postman/Newman...'
-                bat 'newman run staging-tests.postman_collection.json'
+                echo 'Running integration tests on staging using Postman CLI...'
+                bat 'postman collection run staging-tests.postman_collection.json'
             }
         }
 
