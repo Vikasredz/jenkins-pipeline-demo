@@ -1,0 +1,12 @@
+{
+  "name": "jenkins-pipeline-demo",
+  "version": "1.0.0",
+  "description": "Demo project for Jenkins pipeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0",
+    "build": "echo \"No build step defined\" && exit 0"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
