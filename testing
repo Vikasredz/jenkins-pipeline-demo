@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        remoteUser = 'Vikasreddy'  // define here
+    }
 
     stages {
         stage('Checkout') {
