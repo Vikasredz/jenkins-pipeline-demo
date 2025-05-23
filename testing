@@ -1,65 +1,64 @@
 pipeline {
     agent any
 
-    environment {
-        SONAR_TOKEN = credentials('sonar-token')
-        SONAR_PROJECT_KEY = 'your-sonar-project-key'
-    }
-
     stages {
         stage('Build') {
             steps {
-                echo 'Building project...'
-                sh 'npm install'
-                sh 'npm run build'
+                echo 'Building the application...'
+                // Example for Maven:
+                // sh 'mvn clean package'
             }
         }
 
-        stage('Test') {
+        stage('Unit and Integration Tests') {
             steps {
-                echo 'Running tests...'
-                sh 'npm test'
+                echo 'Running unit tests...'
+                // Example for Maven unit tests:
+                // sh 'mvn test'
+                echo 'Running integration tests...'
+                // Example integration test command here
             }
         }
 
-        stage('Code Quality') {
+        stage('Code Analysis') {
             steps {
-                echo 'Running SonarCloud analysis...'
-                withSonarQubeEnv('SonarCloud') {
-                    sh 'sonar-scanner \
-                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=$SONAR_TOKEN'
-                }
+                echo 'Running static code analysis...'
+                // Example with SonarQube Scanner:
+                // withSonarQubeEnv('MySonarQubeServer') {
+                //     sh 'mvn sonar:sonar'
+                // }
             }
         }
 
-        stage('Security') {
+        stage('Security Scan') {
             steps {
-                echo 'Running npm audit...'
-                sh 'npm audit || true'
+                echo 'Performing security scan...'
+                // Example with OWASP Dependency-Check:
+                // sh 'dependency-check.sh --project my-app --scan ./'
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Staging') {
             steps {
                 echo 'Deploying to staging environment...'
-                sh 'docker-compose -f docker-compose.staging.yml up -d'
+                // Example deploying to AWS EC2 using AWS CLI:
+                // sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name StagingGroup --s3-location bucket=mybucket,key=myapp.zip,bundleType=zip'
             }
         }
 
-        stage('Release') {
+        stage('Integration Tests on Staging') {
             steps {
-                echo 'Promoting to production...'
-                sh 'docker-compose -f docker-compose.prod.yml up -d'
+                echo 'Running integration tests on staging...'
+                // Example running Postman/Newman tests:
+                // sh 'newman run staging-tests.postman_collection.json'
             }
         }
 
-        stage('Monitoring') {
+        stage('Deploy to Production') {
             steps {
-                echo 'Simulating monitoring...'
-                sh 'curl -f http://localhost:3000/health || true'
+                echo 'Deploying to production environment...'
+                // Example deploying to production:
+                // sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name ProdGroup --s3-location bucket=mybucket,key=myapp.zip,bundleType=zip'
             }
         }
     }
