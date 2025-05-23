@@ -1,15 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        SONAR_TOKEN = credentials('41481a08bd890c1452fa20fad7a6d6267e41ee87')
-        SONAR_PROJECT_KEY = 'your-sonar-project-key'
-    }
-
     stages {
         stage('Build') {
             steps {
                 echo 'Building project...'
+                // If you don't have npm, remove or update these lines accordingly
                 bat 'npm install'
                 bat 'npm run build'
             }
@@ -19,21 +15,6 @@ pipeline {
             steps {
                 echo 'Running tests...'
                 bat 'npm test'
-            }
-        }
-
-        stage('Code Quality') {
-            steps {
-                echo 'Running SonarCloud analysis...'
-                withSonarQubeEnv('SonarCloud') {
-                    bat """
-                    sonar-scanner ^
-                        -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
-                        -Dsonar.sources=. ^
-                        -Dsonar.host.url=https://sonarcloud.io ^
-                        -Dsonar.login=%SONAR_TOKEN%
-                    """
-                }
             }
         }
 
