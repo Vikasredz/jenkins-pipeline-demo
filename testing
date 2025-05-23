@@ -2,45 +2,41 @@ pipeline {
     agent any
 
     triggers {
-        // Poll SCM every 15 minutes (adjust as needed)
         pollSCM('H/15 * * * *')
     }
 
     stages {
         stage('Build') {
             steps {
-                echo 'Building the project using Maven...'
-                bat 'mvn clean package'
+                echo 'Building the project using Gradle Wrapper...'
+                bat '.\\gradlew.bat clean build'
             }
         }
         
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests with JUnit/TestNG...'
-                bat 'mvn test'
+                echo 'Running unit and integration tests with Gradle...'
+                bat '.\\gradlew.bat test'
             }
         }
         
         stage('Code Analysis') {
             steps {
                 echo 'Analyzing code with SonarQube...'
-                // Assuming SonarQube scanner is configured
-                bat 'mvn sonar:sonar'
+                bat '.\\gradlew.bat sonarqube'
             }
         }
         
         stage('Security Scan') {
             steps {
                 echo 'Performing security scan using OWASP Dependency-Check...'
-                // Example command to run OWASP Dependency-Check (adjust path accordingly)
-                bat 'dependency-check.bat --project my-app --scan .\\target'
+                bat 'dependency-check.bat --project my-app --scan .\\build'
             }
         }
         
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying application to Staging AWS EC2...'
-                // Placeholder for deployment script/command (PowerShell or batch script)
                 bat '.\\deploy-to-ec2.bat staging'
             }
         }
