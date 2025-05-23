@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // Replace with your actual environment variables or credentials
         AWS_REGION = 'ap-southeast-2'
         STAGING_SERVER = 'ec2-user@staging.example.com'
         PRODUCTION_SERVER = 'ec2-user@production.example.com'
+        SSH_KEY_PATH = 'C:\\path\\to\\your\\private-key.ppk'  // Update this path
+        PUTTY_PATH = 'C:\\Program Files\\PuTTY'               // Update this path if needed
     }
 
     triggers {
-        // Poll GitHub every 5 minutes instead of using webhooks
         pollSCM('H/5 * * * *')
     }
 
@@ -17,68 +17,70 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Installing dependencies and building the project...'
-                sh 'npm install'
-                // If using a build step (e.g., webpack, babel):
-                // sh 'npm run build'
+                bat 'npm install'
+                // bat 'npm run build' if applicable
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
                 echo 'Running unit and integration tests...'
-                sh 'npm test' // or use separate scripts like `npm run test:unit && npm run test:integration`
+                bat 'npm test'
             }
         }
 
         stage('Code Analysis') {
             steps {
                 echo 'Running ESLint for static code analysis...'
-                sh 'npx eslint .'
-                // Optionally integrate SonarQube here if configured:
-                // withSonarQubeEnv('SonarQubeServer') {
-                //     sh 'sonar-scanner'
-                // }
+                bat 'npx eslint .'
             }
         }
 
         stage('Security Scan') {
             steps {
                 echo 'Running Snyk to scan for vulnerabilities...'
-                sh 'npx snyk test || true' // Use `|| true` to prevent failure blocking pipeline
-                // Or use: sh 'npm audit'
+                bat 'npx snyk test || exit 0'
+                // or bat 'npm audit'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying application to staging...'
-                // Simplified example using SSH and rsync
-                sh """
-                zip -r app.zip .
-                scp -o StrictHostKeyChecking=no app.zip $STAGING_SERVER:~/app.zip
-                ssh -o StrictHostKeyChecking=no $STAGING_SERVER 'unzip -o ~/app.zip -d ~/app && cd ~/app && npm install && pm2 restart all || pm2 start index.js'
+                echo 'Deploying to staging...'
+                bat """
+                powershell Compress-Archive -Path * -DestinationPath app.zip
+                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.STAGING_SERVER}:
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.STAGING_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; npm install; pm2 restart all || pm2 start index.js\\""
                 """
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging server...'
-                // Example using Newman (Postman CLI)
-                sh 'newman run staging-tests.postman_collection.json'
+                echo 'Running integration tests on staging...'
+                bat 'newman run staging-tests.postman_collection.json'
             }
         }
 
         stage('Deploy to Production') {
             steps {
                 input message: 'Approve deployment to production?', ok: 'Deploy'
-                echo 'Deploying application to production...'
-                sh """
-                zip -r app.zip .
-                scp -o StrictHostKeyChecking=no app.zip $PRODUCTION_SERVER:~/app.zip
-                ssh -o StrictHostKeyChecking=no $PRODUCTION_SERVER 'unzip -o ~/app.zip -d ~/app && cd ~/app && npm install && pm2 restart all || pm2 start index.js'
+                echo 'Deploying to production...'
+                bat """
+                powershell Compress-Archive -Path * -DestinationPath app.zip
+                "${env.PUTTY_PATH}\\pscp.exe" -i "${env.SSH_KEY_PATH}" -batch app.zip ${env.PRODUCTION_SERVER}:
+                "${env.PUTTY_PATH}\\plink.exe" -i "${env.SSH_KEY_PATH}" -batch ${env.PRODUCTION_SERVER} "powershell -Command \\"Expand-Archive -Path app.zip -DestinationPath app -Force; cd app; npm install; pm2 restart all || pm2 start index.js\\""
                 """
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
