@@ -1,64 +1,83 @@
 pipeline {
     agent any
 
+    environment {
+        // Replace with your actual environment variables or credentials
+        AWS_REGION = 'ap-southeast-2'
+        STAGING_SERVER = 'ec2-user@staging.example.com'
+        PRODUCTION_SERVER = 'ec2-user@production.example.com'
+    }
+
+    triggers {
+        // Poll GitHub every 5 minutes instead of using webhooks
+        pollSCM('H/5 * * * *')
+    }
+
     stages {
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                // Example for Maven:
-                // sh 'mvn clean package'
+                echo 'Installing dependencies and building the project...'
+                sh 'npm install'
+                // If using a build step (e.g., webpack, babel):
+                // sh 'npm run build'
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit tests...'
-                // Example for Maven unit tests:
-                // sh 'mvn test'
-                echo 'Running integration tests...'
-                // Example integration test command here
+                echo 'Running unit and integration tests...'
+                sh 'npm test' // or use separate scripts like `npm run test:unit && npm run test:integration`
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running static code analysis...'
-                // Example with SonarQube Scanner:
-                // withSonarQubeEnv('MySonarQubeServer') {
-                //     sh 'mvn sonar:sonar'
+                echo 'Running ESLint for static code analysis...'
+                sh 'npx eslint .'
+                // Optionally integrate SonarQube here if configured:
+                // withSonarQubeEnv('SonarQubeServer') {
+                //     sh 'sonar-scanner'
                 // }
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Performing security scan...'
-                // Example with OWASP Dependency-Check:
-                // sh 'dependency-check.sh --project my-app --scan ./'
+                echo 'Running Snyk to scan for vulnerabilities...'
+                sh 'npx snyk test || true' // Use `|| true` to prevent failure blocking pipeline
+                // Or use: sh 'npm audit'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to staging environment...'
-                // Example deploying to AWS EC2 using AWS CLI:
-                // sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name StagingGroup --s3-location bucket=mybucket,key=myapp.zip,bundleType=zip'
+                echo 'Deploying application to staging...'
+                // Simplified example using SSH and rsync
+                sh """
+                zip -r app.zip .
+                scp -o StrictHostKeyChecking=no app.zip $STAGING_SERVER:~/app.zip
+                ssh -o StrictHostKeyChecking=no $STAGING_SERVER 'unzip -o ~/app.zip -d ~/app && cd ~/app && npm install && pm2 restart all || pm2 start index.js'
+                """
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging...'
-                // Example running Postman/Newman tests:
-                // sh 'newman run staging-tests.postman_collection.json'
+                echo 'Running integration tests on staging server...'
+                // Example using Newman (Postman CLI)
+                sh 'newman run staging-tests.postman_collection.json'
             }
         }
 
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to production environment...'
-                // Example deploying to production:
-                // sh 'aws deploy create-deployment --application-name MyApp --deployment-group-name ProdGroup --s3-location bucket=mybucket,key=myapp.zip,bundleType=zip'
+                input message: 'Approve deployment to production?', ok: 'Deploy'
+                echo 'Deploying application to production...'
+                sh """
+                zip -r app.zip .
+                scp -o StrictHostKeyChecking=no app.zip $PRODUCTION_SERVER:~/app.zip
+                ssh -o StrictHostKeyChecking=no $PRODUCTION_SERVER 'unzip -o ~/app.zip -d ~/app && cd ~/app && npm install && pm2 restart all || pm2 start index.js'
+                """
             }
         }
     }
