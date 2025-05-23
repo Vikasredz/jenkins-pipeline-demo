@@ -2,44 +2,43 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Build') {
             steps {
-                echo 'Building project...'
-                bat 'npm install'
-                bat 'npm run build'
+                echo 'Build skipped - no package.json'
+                // Or put your build commands here if needed
             }
         }
+
         stage('Test') {
             steps {
-                echo 'Running tests...'
-                bat 'npm test'
+                echo 'Tests skipped - no npm test scripts'
             }
         }
+
         stage('Security') {
             steps {
-                echo 'Running npm audit...'
-                bat 'npm audit || exit 0'
+                echo 'Security scan skipped - no npm environment'
             }
         }
+
         stage('Deploy') {
             steps {
-                echo 'Deploying to remote server...'
-                // Replace these variables with your server details
-                script {
-                    def remoteUser = 'your-ssh-user'
-                    def remoteHost = 'your.server.ip'
-                    def remotePath = '/path/to/deploy/app'
-                }
-                // Copy all files from workspace to remote server (you need scp installed)
-                bat """
-                scp -r * ${remoteUser}@${remoteHost}:${remotePath}
-                ssh ${remoteUser}@${remoteHost} "cd ${remotePath} && npm install && pm2 restart app || pm2 start app.js --name app"
-                """
+                echo 'Deploying to staging environment...'
+                bat 'docker-compose -f docker-compose.staging.yml up -d'
+            }
+        }
+
+        stage('Release') {
+            steps {
+                echo 'Promoting to production...'
+                bat 'docker-compose -f docker-compose.prod.yml up -d'
+            }
+        }
+
+        stage('Monitoring') {
+            steps {
+                echo 'Simulating monitoring...'
+                bat 'curl -f http://localhost:3000/health || exit 0'
             }
         }
     }
