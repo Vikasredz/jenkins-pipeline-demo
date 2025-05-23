@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_TOKEN = credentials('41481a08bd890c1452fa20fad7a6d6267e41ee87')
         SONAR_PROJECT_KEY = 'your-sonar-project-key'
     }
 
