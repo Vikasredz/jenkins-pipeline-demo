@@ -1,7 +1,9 @@
 pipeline {
     agent any
     environment {
-        remoteUser = 'Vikasreddy'  // define here
+        remoteUser = 'Vikasreddy'               // your SSH user
+        remoteHost = 'your.server.ip'           // your remote server IP or hostname
+        remotePath = '/path/to/deploy/app'      // deployment directory on remote server
     }
 
     stages {
@@ -32,16 +34,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying to remote server...'
-                // Replace these variables with your server details
-                script {
-                    def remoteUser = 'your-ssh-user'
-                    def remoteHost = 'your.server.ip'
-                    def remotePath = '/path/to/deploy/app'
-                }
-                // Copy all files from workspace to remote server (you need scp installed)
                 bat """
-                scp -r * ${remoteUser}@${remoteHost}:${remotePath}
-                ssh ${remoteUser}@${remoteHost} "cd ${remotePath} && npm install && pm2 restart app || pm2 start app.js --name app"
+                    scp -r * %remoteUser%@%remoteHost%:%remotePath%
+                    ssh %remoteUser%@%remoteHost% "cd %remotePath% && npm install && pm2 restart app || pm2 start app.js --name app"
                 """
             }
         }
