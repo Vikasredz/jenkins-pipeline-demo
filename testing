@@ -2,55 +2,56 @@ pipeline {
     agent any
 
     triggers {
-        pollSCM('H/15 * * * *')
+        pollSCM('H/15 * * * *')  // checks GitHub every 15 minutes
     }
 
     stages {
         stage('Build') {
             steps {
-                echo 'Building the project using Gradle Wrapper...'
-                bat '.\\gradlew.bat clean build'
+                echo 'Installing dependencies and building the project using npm...'
+                bat 'npm install'
+                bat 'npm run build'  // Make sure your package.json defines a "build" script
             }
         }
-        
+
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests with Gradle...'
-                bat '.\\gradlew.bat test'
+                echo 'Running unit and integration tests with npm...'
+                bat 'npm test'  // assumes test script is defined in package.json
             }
         }
-        
+
         stage('Code Analysis') {
             steps {
-                echo 'Analyzing code with SonarQube...'
-                bat '.\\gradlew.bat sonarqube'
+                echo 'Running static code analysis using ESLint...'
+                bat 'npx eslint .'
             }
         }
-        
+
         stage('Security Scan') {
             steps {
-                echo 'Performing security scan using OWASP Dependency-Check...'
-                bat 'dependency-check.bat --project my-app --scan .\\build'
+                echo 'Running security scan using npm audit...'
+                bat 'npm audit'
             }
         }
-        
+
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying application to Staging AWS EC2...'
+                echo 'Deploying application to staging...'
                 bat '.\\deploy-to-ec2.bat staging'
             }
         }
-        
+
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging environment using Postman/Newman...'
+                echo 'Running integration tests on staging using Postman/Newman...'
                 bat 'newman run staging-tests.postman_collection.json'
             }
         }
-        
+
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying application to Production AWS EC2...'
+                echo 'Deploying application to production...'
                 bat '.\\deploy-to-ec2.bat production'
             }
         }
